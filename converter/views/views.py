@@ -13,6 +13,10 @@ import sys
 from ..models import (AudioFormat, File, FileSchema, ProcessStatus, Task,
                       TaskSchema, User, UserSchema, db)
 
+import smtplib, ssl
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+
 celery_app = Celery(__name__, broker='redis://localhost:6379/0')
 user_schema = UserSchema()
 task_schema = TaskSchema()
@@ -47,13 +51,11 @@ class ViewConverter(Resource):
             task.output_file_id=new_file.id
             task.status=ProcessStatus.PROCESSED
             db.session.commit()  
+            sendEmail('Se ha convertido el archivo con exito')
             return  {"mensaje": "Se ha convertido el archivo con exito","error":False}
         except NameError:
             return {"mensaje": "Hubo un error no esperado","error":True}
         
-
-       
-
 
 def getExtention(format):
     if format == 'mp3':
@@ -80,3 +82,24 @@ def getPagination(request):
     page = 1 if (request.args.get('page') == None) else int(
         request.args.get('page'))
     return {'page': page, 'per_page': per_page}
+
+
+
+def sendEmail(mensaje):
+    context = ssl.create_default_context()
+    msg = MIMEMultipart()
+
+    msg['From'] = "emailpruebasuniandes@gmail.com"
+    msg['To'] = "emailpruebasuniandes@gmail.com"
+    msg['Subject'] = "Notificación Conversión Audio"
+
+    msg.attach(MIMEText(mensaje, 'plain'))
+
+    with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=context) as server:
+
+        server.login('emailpruebasuniandes@gmail.com', 'muylmymsziopqmlc')
+        print('INICIÒ SESIÒN GMAIL')
+        destinatario = 'emailpruebasuniandes@gmail.com'
+        server.sendmail('emailpruebasuniandes@gmail.com', destinatario, msg.as_string())
+        server.quit()
+        print('MENSAJE ENVIADO')
